@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Design Patterns Flowcharts</title>
+    <script src="https://unpkg.com/gojs/release/go.js"></script>
+    <style>
+      .diagramDiv {
+        border: solid 1px black;
+        width: 100%;
+        height: 400px;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Design Patterns Flowcharts</h1>
+    
+    <h2>Multiagent Pattern</h2>
+    <div id="multiagentDiagram" class="diagramDiv"></div>
+    
+    <h2>Reflection Pattern</h2>
+    <div id="reflectionDiagram" class="diagramDiv"></div>
+    
+    <h2>Planning Pattern</h2>
+    <div id="planningDiagram" class="diagramDiv"></div>
+    
+    <h2>Tool Use Pattern</h2>
+    <div id="toolUseDiagram" class="diagramDiv"></div>
+    
+    <script>
+      // Helper function to initialize a diagram with given nodes and links
+      function initDiagram(divId, nodeDataArray, linkDataArray) {
+        var diagram = new go.Diagram(divId);
+        diagram.nodeTemplate =
+          new go.Node("Auto")
+            .add(
+              new go.Shape("RoundedRectangle", { strokeWidth: 1, fill: "lightgray" }),
+              new go.TextBlock({ margin: 8, font: "bold 14px sans-serif" })
+                .bind("text", "key")
+            );
+        diagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+      }
+      
+      // Multiagent Pattern Diagram:
+      // Represents agents collaborating sequentially.
+      initDiagram("multiagentDiagram",
+        [
+          { key: "Agent A" },
+          { key: "Agent B" },
+          { key: "Agent C" }
+        ],
+        [
+          { from: "Agent A", to: "Agent B" },
+          { from: "Agent B", to: "Agent C" }
+        ]
+      );
+      
+      // Reflection Pattern Diagram:
+      // Represents a cycle from input, through self-evaluation, to output.
+      initDiagram("reflectionDiagram",
+        [
+          { key: "Input" },
+          { key: "Self-Evaluation" },
+          { key: "Output" }
+        ],
+        [
+          { from: "Input", to: "Self-Evaluation" },
+          { from: "Self-Evaluation", to: "Output" }
+        ]
+      );
+      
+      // Planning Pattern Diagram:
+      // Represents a main goal decomposing into subgoals.
+      initDiagram("planningDiagram",
+        [
+          { key: "Main Goal" },
+          { key: "Subgoal 1" },
+          { key: "Subgoal 2" },
+          { key: "Subgoal 3" }
+        ],
+        [
+          { from: "Main Goal", to: "Subgoal 1" },
+          { from: "Main Goal", to: "Subgoal 2" },
+          { from: "Main Goal", to: "Subgoal 3" }
+        ]
+      );
+      
+      // Tool Use Pattern Diagram:
+      // Represents a task delegating to various tools.
+      initDiagram("toolUseDiagram",
+        [
+          { key: "Task" },
+          { key: "Tool 1" },
+          { key: "Tool 2" }
+        ],
+        [
+          { from: "Task", to: "Tool 1" },
+          { from: "Task", to: "Tool 2" }
+        ]
+      );
+    </script>
+  </body>
+</html>
