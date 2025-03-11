@@ -1,5 +1,4 @@
 # Python dependencies for Ask-AI Project
-
 flask
 requests
 gunicorn
