@@ -1,0 +1,20 @@
+# Query Processing Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-processing-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-processing
+  template:
+    metadata:
+      labels:
+        app: query-processing
+    spec:
+      containers:
+      - name: query-processing
+        image: query-processing:latest
+        ports:
+        - containerPort: 5002

@@ -1,0 +1,20 @@
+# Security Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: security
+  template:
+    metadata:
+      labels:
+        app: security
+    spec:
+      containers:
+      - name: security
+        image: security:latest
+        ports:
+        - containerPort: 5004

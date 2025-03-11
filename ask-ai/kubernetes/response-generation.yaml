@@ -1,0 +1,20 @@
+# Response Generation Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: response-generation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: response-generation
+  template:
+    metadata:
+      labels:
+        app: response-generation
+    spec:
+      containers:
+      - name: response-generation
+        image: response-generation:latest
+        ports:
+        - containerPort: 5003

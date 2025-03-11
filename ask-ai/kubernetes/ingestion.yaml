@@ -1,0 +1,20 @@
+# Ingestion Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingestion
+  template:
+    metadata:
+      labels:
+        app: ingestion
+    spec:
+      containers:
+      - name: ingestion
+        image: ingestion:latest
+        ports:
+        - containerPort: 5000

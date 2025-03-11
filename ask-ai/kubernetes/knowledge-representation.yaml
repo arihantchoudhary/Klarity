@@ -1,0 +1,20 @@
+# Knowledge Representation Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knowledge-representation-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knowledge-representation
+  template:
+    metadata:
+      labels:
+        app: knowledge-representation
+    spec:
+      containers:
+      - name: knowledge-representation
+        image: knowledge-representation:latest
+        ports:
+        - containerPort: 5001
