@@ -1,4 +1,8 @@
-# Python dependencies for Ask-AI Project
-flask
-requests
-gunicorn
+chardet
+numpy
+scikit-learn
+faiss-cpu
+torch
+transformers
+sentence-transformers
+tqdm

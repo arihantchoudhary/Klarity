@@ -1,0 +1,11 @@
+Vector indexing is a critical component of modern information retrieval systems.
+
+The flat index is the simplest approach, where we store vectors as-is and compare directly.
+
+Locality Sensitive Hashing (LSH) groups similar vectors into buckets using hash functions.
+
+Inverted File (IVF) indexing uses clustering to organize vectors, allowing for faster retrieval.
+
+Inverted File with Product Quantization (IVFPQ) further compresses vectors for efficient storage.
+
+Hierarchical Navigable Small World (HNSW) creates a multi-layered graph that enables efficient nearest neighbor search.
