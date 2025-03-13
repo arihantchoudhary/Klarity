@@ -1,0 +1,50 @@
+This is a sample document for testing the PDF processing pipeline.
+
+The RAGFlowPdfParser is designed to extract text, tables, and figures from PDF documents.
+It uses a combination of OCR, layout analysis, and machine learning for high-quality content extraction.
+
+# Sample Section 1: Introduction
+
+PDF documents are widely used for sharing documents with rich formatting.
+However, extracting structured information from PDFs can be challenging due to:
+- Complex layouts
+- Mixed content types (text, tables, images)
+- Varying formatting styles
+
+# Sample Section 2: Tables
+
+Tables in documents contain structured data that is particularly valuable.
+Below is a simple example table:
+
+| ID | Name     | Department  | Salary |
+|----|----------|------------|--------|
+| 1  | John Doe | Engineering | 85000  |
+| 2  | Jane Smith | Marketing  | 78000  |
+| 3  | Robert Johnson | Finance    | 92000  |
+
+# Sample Section 3: Lists and Bullets
+
+The parser can handle various types of structural elements including:
+• Numbered lists
+• Bullet points
+• Hierarchical sections
+• Multi-column layouts
+
+# Sample Section 4: Technical Details
+
+The PDF processing pipeline includes several steps:
+1. Text extraction with OCR and direct PDF parsing
+2. Layout recognition to identify document structure
+3. Table detection and structure recognition
+4. Content chunking for semantic indexing
+5. Vector embedding generation for semantic search
+
+# Sample Section 5: Conclusion
+
+This sample document provides test content for verifying:
+- Basic text extraction
+- Table structure recognition
+- Document chunking
+- Vector indexing functionality
+
+The capabilities demonstrated here represent only a subset of what the full system can process.
