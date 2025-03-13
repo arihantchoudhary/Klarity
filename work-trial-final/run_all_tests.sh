@@ -58,6 +58,16 @@ check_package pypdf || MISSING_PDF=true
 check_package PIL || echo -e "  ${YELLOW}✓ PIL (will try Pillow)${NC}" && check_package Pillow || MISSING_PDF=true
 check_package xgboost || MISSING_PDF=true
 
+# Check for mock dependencies
+MOCK_DEPS_AVAILABLE=false
+if [ -f "mock_dependencies.py" ]; then
+    echo -e "\n${GREEN}Mock dependencies available - will use for missing packages${NC}"
+    MOCK_DEPS_AVAILABLE=true
+else
+    echo -e "\n${YELLOW}Warning: mock_dependencies.py not found${NC}"
+    echo -e "Some tests may fail if required packages are missing"
+fi
+
 # Check vector indexing packages (optional)
 MISSING_VECTOR=false
 echo -e "\nVector indexing packages (optional):"
