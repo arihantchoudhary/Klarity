@@ -20,12 +20,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const saveDocument = document.getElementById('save-document');
     const chatInput = document.getElementById('chat-input');
     const sendMessage = document.getElementById('send-message');
+    const uploadProgress = document.getElementById('upload-progress');
     
     let currentEditingFile = null;
     let fileContents = new Map(); // Cache for file contents
     let currentDocument = null;
     let documents = [];
     let isProcessing = false;
+    let hasDocuments = false;
     
     // Sample suggested questions
     const suggestedQuestions = [
@@ -198,11 +200,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Document List Management
     async function loadExistingDocuments() {
         try {
-            const response = await fetch('/api/pfizer-files');
+            const response = await fetch('http://127.0.0.1:5001/api/pfizer-files');
             const data = await response.json();
-            if (data.files) {
+            if (data.success && data.files) {
                 documents = data.files;
-                renderDocumentList();
+                hasDocuments = documents.length > 0;
+                updateDocumentList();
             }
         } catch (error) {
             console.error('Error loading documents:', error);
@@ -210,29 +213,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function renderDocumentList() {
+    function updateDocumentList() {
         documentList.innerHTML = '';
+        
+        if (!hasDocuments) {
+            documentList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-file-upload"></i>
+                    <p>Upload PDF files to get started</p>
+                </div>
+            `;
+            return;
+        }
+
         documents.forEach(doc => {
             const docElement = document.createElement('div');
             docElement.className = `document-item ${currentDocument === doc ? 'active' : ''}`;
-            docElement.textContent = doc;
+            docElement.innerHTML = `
+                <div class="doc-title">${doc}</div>
+                <div class="doc-info">PDF Document</div>
+            `;
             docElement.addEventListener('click', () => loadDocument(doc));
             documentList.appendChild(docElement);
         });
+
+        updateChatStatus();
     }
 
     // Document Upload and Processing
     async function handleFileUpload(event) {
         if (isProcessing) return;
-        isProcessing = true;
-
+        
         const files = event.target.files;
-        for (const file of files) {
-            try {
+        if (files.length === 0) return;
+
+        isProcessing = true;
+        uploadProgress.style.display = 'block';
+        
+        try {
+            for (const file of files) {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const response = await fetch('/api/process-document', {
+                const response = await fetch('http://127.0.0.1:5001/api/process-document', {
                     method: 'POST',
                     body: formData
                 });
@@ -242,17 +265,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     documents.push(file.name);
                     showSuccess(`Successfully processed ${file.name}`);
                 } else {
-                    showError(`Failed to process ${file.name}`);
+                    showError(`Failed to process ${file.name}: ${result.error}`);
                 }
-            } catch (error) {
-                console.error('Error processing file:', error);
-                showError(`Error processing ${file.name}`);
             }
-        }
 
-        isProcessing = false;
-        renderDocumentList();
-        fileUpload.value = '';
+            hasDocuments = documents.length > 0;
+            updateDocumentList();
+        } catch (error) {
+            console.error('Error processing files:', error);
+            showError('Error processing files');
+        } finally {
+            isProcessing = false;
+            uploadProgress.style.display = 'none';
+            fileUpload.value = '';
+        }
     }
 
     async function handlePathUpload() {
@@ -264,19 +290,31 @@ document.addEventListener('DOMContentLoaded', function() {
     // Document Editing
     async function loadDocument(docName) {
         try {
-            const response = await fetch(`/api/file-contents?path=${encodeURIComponent(docName)}`);
+            documentContent.innerHTML = '<div class="placeholder">Loading document...</div>';
+            
+            const response = await fetch(`http://127.0.0.1:5001/api/file-contents?path=${encodeURIComponent(docName)}`);
             const data = await response.json();
             
-            if (data.content) {
+            if (data.success && data.content) {
                 currentDocument = docName;
                 currentDocumentTitle.textContent = docName;
-                documentContent.innerHTML = data.content;
+                documentContent.innerHTML = '';
+                documentContent.contentEditable = 'true';
+                
+                // Create an editable div for the content
+                const contentDiv = document.createElement('div');
+                contentDiv.innerHTML = data.content;
+                documentContent.appendChild(contentDiv);
+                
                 saveDocument.disabled = true;
-                renderDocumentList();
+                updateDocumentList();
+            } else {
+                throw new Error(data.error || 'Failed to load document');
             }
         } catch (error) {
             console.error('Error loading document:', error);
             showError('Failed to load document');
+            documentContent.innerHTML = '<div class="placeholder">Error loading document</div>';
         }
     }
 
@@ -290,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!currentDocument) return;
 
         try {
-            const response = await fetch('/api/save-file', {
+            const response = await fetch('http://127.0.0.1:5001/api/save-file', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -306,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveDocument.disabled = true;
                 showSuccess('Document saved successfully');
             } else {
-                showError('Failed to save document');
+                throw new Error(result.error || 'Failed to save document');
             }
         } catch (error) {
             console.error('Error saving document:', error);
@@ -315,22 +353,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Chat Functionality
+    function handleChatInput(event) {
+        const message = event.target.value.trim();
+        sendMessage.disabled = !message || !hasDocuments;
+    }
+
     function handleChatKeyPress(event) {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
-            handleSendMessage();
+            if (!sendMessage.disabled) {
+                handleSendMessage();
+            }
         }
     }
 
     async function handleSendMessage() {
         const message = chatInput.value.trim();
-        if (!message) return;
+        if (!message || !hasDocuments) return;
 
         appendMessage(message, 'user');
         chatInput.value = '';
+        sendMessage.disabled = true;
 
         try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch('http://127.0.0.1:5001/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -339,12 +385,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             const result = await response.json();
-            if (result.response) {
+            if (result.success) {
                 appendMessage(result.response, 'assistant');
+                if (result.sources) {
+                    appendSources(result.sources);
+                }
+            } else {
+                throw new Error(result.error || 'Failed to get response');
             }
         } catch (error) {
             console.error('Error sending message:', error);
-            showError('Failed to send message');
+            appendMessage('Sorry, I encountered an error processing your request. Please try again.', 'system');
         }
     }
 
@@ -356,14 +407,27 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
+    function appendSources(sources) {
+        if (sources.length > 0) {
+            const sourcesDiv = document.createElement('div');
+            sourcesDiv.className = 'message system-message';
+            sourcesDiv.innerHTML = `
+                <strong>Sources:</strong><br>
+                ${sources.map(source => `- ${source}`).join('<br>')}
+            `;
+            chatMessages.appendChild(sourcesDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
     // Utility Functions
     function showSuccess(message) {
-        // Implement a toast or notification system
+        // You can implement a toast notification system here
         console.log('Success:', message);
     }
 
     function showError(message) {
-        // Implement a toast or notification system
+        // You can implement a toast notification system here
         console.error('Error:', message);
     }
 
