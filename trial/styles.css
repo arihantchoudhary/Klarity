@@ -1,0 +1,566 @@
+:root {
+    --bg-color: #1e1e1e;
+    --panel-bg: #252525;
+    --header-bg: #1b1b1b;
+    --text-color: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #3a3a3a;
+    --accent-color: #6200ee;
+    --button-color: #444;
+    --input-bg: #333;
+    --hover-color: #3a3a3a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background-color: var(--header-bg);
+    border-bottom: 1px solid var(--border-color);
+    height: 60px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.brain-logo {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+}
+
+h1 {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.header-buttons button {
+    padding: 6px 12px;
+    margin-left: 10px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.header-buttons button i {
+    margin-right: 5px;
+}
+
+.header-buttons button:hover {
+    background-color: var(--hover-color);
+}
+
+main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+section {
+    border-right: 1px solid var(--border-color);
+    background-color: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sources-section {
+    width: 25%;
+    min-width: 250px;
+}
+
+.editor-section {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--panel-bg);
+    border-right: 1px solid var(--border-color);
+}
+
+.chat-section {
+    width: 25%;
+    min-width: 300px;
+}
+
+section h2 {
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 0.8rem 1rem;
+}
+
+.sources-section h2, .chat-header h2, .studio-header h2 {
+    display: inline-block;
+}
+
+.chat-header, .studio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.expand-button {
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.expand-button:hover {
+    background-color: var(--hover-color);
+}
+
+.add-source-btn {
+    padding: 0.8rem 1rem;
+    margin: 0.5rem 1rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.add-source-btn:hover {
+    border-color: var(--text-secondary);
+    background-color: var(--hover-color);
+}
+
+.source-list {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.source-item {
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.source-item:hover {
+    background-color: var(--hover-color);
+}
+
+.source-item input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.source-item label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.source-item i {
+    color: #e74c3c;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.message {
+    display: flex;
+    margin-bottom: 1.5rem;
+}
+
+.message-icon {
+    margin-right: 0.8rem;
+    flex-shrink: 0;
+}
+
+.brain-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #8e44ad;
+    padding: 6px;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.message-content h3 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+.source-count {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.message-text {
+    line-height: 1.5;
+}
+
+.message-text p {
+    margin-bottom: 0.8rem;
+}
+
+.chat-input {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+}
+
+.input-container {
+    display: flex;
+    align-items: center;
+    background-color: var(--input-bg);
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+#user-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-color);
+    padding: 0.5rem 0;
+}
+
+.input-container .source-count {
+    margin: 0 0.5rem;
+}
+
+.send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--accent-color);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.suggested-question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1rem;
+    background-color: var(--input-bg);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.suggested-question p {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.next-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--button-color);
+    border: none;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.studio-content {
+    padding: 1rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.audio-overview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.audio-overview h3 {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.info-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.load-conversation {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: var(--input-bg);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.audio-icon {
+    margin-right: 1rem;
+    width: 40px;
+    height: 40px;
+    background-color: var(--bg-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.text-content {
+    flex: 1;
+}
+
+.load-btn {
+    padding: 0.3rem 1rem;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.interactive-mode {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.beta-tag {
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+}
+
+.notes-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.notes-header h3 {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.options-icon {
+    cursor: pointer;
+}
+
+.add-note-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-color);
+    cursor: pointer;
+    margin-bottom: 1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.study-guide, .briefing-doc, .faq, .timeline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 0;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.study-guide:hover, .briefing-doc:hover, .faq:hover, .timeline:hover {
+    background-color: var(--hover-color);
+}
+
+.note-content {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background-color: var(--input-bg);
+    border-radius: 8px;
+    display: flex;
+    gap: 1rem;
+}
+
+.note-icon {
+    flex-shrink: 0;
+    color: #f39c12;
+}
+
+.note-text h4 {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.note-text p {
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* For the brain icon SVG */
+.brain-icon, .brain-logo {
+    fill: #fff;
+    background-color: #9c27b0;
+}
+
+strong {
+    font-weight: 600;
+    color: #fff;
+}
+
+.source-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+}
+
+.directory-select {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: white;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+}
+
+.directory-select:hover {
+    border-color: #ccc;
+}
+
+.directory-select:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.source-group {
+    margin-bottom: 1.5rem;
+    padding: 0 1rem;
+}
+
+.source-group h4 {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.source-loading {
+    color: #666;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    font-style: italic;
+}
+
+.editor-header {
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.8rem 1rem;
+}
+
+.editor-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.8rem;
+    padding: 0.5rem 0;
+}
+
+.toolbar-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-color);
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.toolbar-btn:hover {
+    background-color: var(--hover-color);
+}
+
+.separator {
+    color: var(--border-color);
+    margin: 0 0.5rem;
+}
+
+.editor-content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    outline: none;
+}
+
+.editor-content p {
+    margin-bottom: 1rem;
+}
+
+.editor-content:empty:before {
+    content: 'Select a document from the sources panel to start editing...';
+    color: var(--text-secondary);
+    font-style: italic;
+}

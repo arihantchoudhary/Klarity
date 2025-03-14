@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dense Vector Indexing Enabled RAG</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <i class="fas fa-brain brain-logo"></i>
+            <h1>Dense Vector Indexing Enabled RAG across 500+ docs</h1>
+        </div>
+        <div class="header-buttons">
+            <button class="share-btn"><i class="fas fa-share-alt"></i> Share</button>
+            <button class="settings-btn"><i class="fas fa-cog"></i> Settings</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Sources Panel -->
+        <section class="sources-section">
+            <h2>Sources</h2>
+            <div class="expand-button"><i class="fas fa-expand"></i></div>
+            
+            <div class="source-controls">
+                <div class="add-source-btn">
+                    <i class="fas fa-plus"></i> Add source
+                </div>
+                <select id="pfizer-directory" class="directory-select">
+                    <option value="">Select Pfizer Directory</option>
+                    <option value="uploads/Pfizer/court_documents">Court Documents</option>
+                    <option value="uploads/Pfizer/Rel_30122021">Release 30-12-2021</option>
+                    <option value="uploads/Pfizer/Rel_24032022">Release 24-03-2022</option>
+                    <option value="uploads/Pfizer/Rel_22122021">Release 22-12-2021</option>
+                    <option value="uploads/Pfizer/Rel_18012022">Release 18-01-2022</option>
+                    <option value="uploads/Pfizer/Rel_13122021">Release 13-12-2021</option>
+                    <option value="uploads/Pfizer/Rel_13012022">Release 13-01-2022</option>
+                    <option value="uploads/Pfizer/Rel_03102022">Release 03-10-2022</option>
+                    <option value="uploads/Pfizer/Rel_02052022">Release 02-05-2022</option>
+                    <option value="uploads/Pfizer/Rel_01122021">Release 01-12-2021</option>
+                    <option value="uploads/Pfizer/Rel_01112022">Release 01-11-2022</option>
+                    <option value="uploads/Pfizer/Rel_01092022">Release 01-09-2022</option>
+                    <option value="uploads/Pfizer/Rel_01082022">Release 01-08-2022</option>
+                    <option value="uploads/Pfizer/Rel_01072022">Release 01-07-2022</option>
+                    <option value="uploads/Pfizer/Rel_01062022">Release 01-06-2022</option>
+                    <option value="uploads/Pfizer/Rel_01042022">Release 01-04-2022</option>
+                    <option value="uploads/Pfizer/Rel_01032022">Release 01-03-2022</option>
+                </select>
+            </div>
+
+            <div class="source-list">
+                <div class="source-item" id="select-all">
+                    <input type="checkbox" id="all-sources">
+                    <label for="all-sources">Select all sources</label>
+                </div>
+
+                <div class="source-group" id="pfizer-files">
+                    <h4>Pfizer Documents</h4>
+                    <div class="source-loading">Select a directory to load files...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Document Editor Panel -->
+        <section class="editor-section">
+            <div class="editor-header">
+                <h2>Document Editor</h2>
+                <div class="editor-toolbar">
+                    <button class="toolbar-btn"><i class="fas fa-bold"></i></button>
+                    <button class="toolbar-btn"><i class="fas fa-italic"></i></button>
+                    <button class="toolbar-btn"><i class="fas fa-underline"></i></button>
+                    <span class="separator">|</span>
+                    <button class="toolbar-btn"><i class="fas fa-align-left"></i></button>
+                    <button class="toolbar-btn"><i class="fas fa-align-center"></i></button>
+                    <button class="toolbar-btn"><i class="fas fa-align-right"></i></button>
+                    <span class="separator">|</span>
+                    <button class="toolbar-btn"><i class="fas fa-list-ul"></i></button>
+                    <button class="toolbar-btn"><i class="fas fa-list-ol"></i></button>
+                </div>
+            </div>
+            <div class="editor-content" contenteditable="true">
+                <p>Select a document from the sources panel to start editing...</p>
+            </div>
+        </section>
+
+        <!-- Chat Panel -->
+        <section class="chat-section">
+            <div class="chat-header">
+                <h2>Chat</h2>
+                <div class="expand-button"><i class="fas fa-expand"></i></div>
+            </div>
+
+            <div class="chat-messages">
+                <div class="message system-message">
+                    <div class="message-icon">
+                        <i class="fas fa-brain brain-icon"></i>
+                    </div>
+                    <div class="message-content">
+                        <h3>Dense Vector Indexing Enabled RAG across 500+ docs</h3>
+                        <p class="source-count">500+ docs</p>
+                        <div class="message-text">
+                            <p>Our system leverages advanced dense vector indexing to enable efficient Retrieval-Augmented Generation (RAG) across a vast collection of over 500 documents. This sophisticated approach allows for precise semantic search and contextual understanding, ensuring highly relevant information retrieval and improved response generation.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input">
+                <div class="input-container">
+                    <input type="text" id="user-input" placeholder="Ask about the documents...">
+                    <button class="send-btn"><i class="fas fa-paper-plane"></i></button>
+                </div>
+                
+                <div class="suggested-question">
+                    <p>How does dense vector indexing improve RAG performance?</p>
+                    <button class="next-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
