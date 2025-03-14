@@ -2,7 +2,7 @@ import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from .document_processor import DocumentProcessor

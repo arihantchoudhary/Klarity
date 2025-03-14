@@ -12,9 +12,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const pfizerFilesContainer = document.getElementById('pfizer-files');
     const editorContent = document.querySelector('.editor-content');
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
+    const fileUpload = document.getElementById('file-upload');
+    const pathUpload = document.getElementById('path-upload');
+    const documentList = document.getElementById('document-list');
+    const documentContent = document.getElementById('document-content');
+    const currentDocumentTitle = document.getElementById('current-document-title');
+    const saveDocument = document.getElementById('save-document');
+    const chatInput = document.getElementById('chat-input');
+    const sendMessage = document.getElementById('send-message');
     
     let currentEditingFile = null;
     let fileContents = new Map(); // Cache for file contents
+    let currentDocument = null;
+    let documents = [];
+    let isProcessing = false;
     
     // Sample suggested questions
     const suggestedQuestions = [
@@ -184,6 +195,178 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Document List Management
+    async function loadExistingDocuments() {
+        try {
+            const response = await fetch('/api/pfizer-files');
+            const data = await response.json();
+            if (data.files) {
+                documents = data.files;
+                renderDocumentList();
+            }
+        } catch (error) {
+            console.error('Error loading documents:', error);
+            showError('Failed to load existing documents');
+        }
+    }
+
+    function renderDocumentList() {
+        documentList.innerHTML = '';
+        documents.forEach(doc => {
+            const docElement = document.createElement('div');
+            docElement.className = `document-item ${currentDocument === doc ? 'active' : ''}`;
+            docElement.textContent = doc;
+            docElement.addEventListener('click', () => loadDocument(doc));
+            documentList.appendChild(docElement);
+        });
+    }
+
+    // Document Upload and Processing
+    async function handleFileUpload(event) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        const files = event.target.files;
+        for (const file of files) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/api/process-document', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    documents.push(file.name);
+                    showSuccess(`Successfully processed ${file.name}`);
+                } else {
+                    showError(`Failed to process ${file.name}`);
+                }
+            } catch (error) {
+                console.error('Error processing file:', error);
+                showError(`Error processing ${file.name}`);
+            }
+        }
+
+        isProcessing = false;
+        renderDocumentList();
+        fileUpload.value = '';
+    }
+
+    async function handlePathUpload() {
+        // In a real implementation, this would open a directory picker
+        // For now, we'll just show an alert
+        alert('Directory selection is not implemented in this demo. Please use file upload instead.');
+    }
+
+    // Document Editing
+    async function loadDocument(docName) {
+        try {
+            const response = await fetch(`/api/file-contents?path=${encodeURIComponent(docName)}`);
+            const data = await response.json();
+            
+            if (data.content) {
+                currentDocument = docName;
+                currentDocumentTitle.textContent = docName;
+                documentContent.innerHTML = data.content;
+                saveDocument.disabled = true;
+                renderDocumentList();
+            }
+        } catch (error) {
+            console.error('Error loading document:', error);
+            showError('Failed to load document');
+        }
+    }
+
+    function handleDocumentEdit() {
+        if (currentDocument) {
+            saveDocument.disabled = false;
+        }
+    }
+
+    async function handleSaveDocument() {
+        if (!currentDocument) return;
+
+        try {
+            const response = await fetch('/api/save-file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    path: currentDocument,
+                    content: documentContent.innerHTML
+                })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                saveDocument.disabled = true;
+                showSuccess('Document saved successfully');
+            } else {
+                showError('Failed to save document');
+            }
+        } catch (error) {
+            console.error('Error saving document:', error);
+            showError('Failed to save document');
+        }
+    }
+
+    // Chat Functionality
+    function handleChatKeyPress(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSendMessage();
+        }
+    }
+
+    async function handleSendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        appendMessage(message, 'user');
+        chatInput.value = '';
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message })
+            });
+
+            const result = await response.json();
+            if (result.response) {
+                appendMessage(result.response, 'assistant');
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            showError('Failed to send message');
+        }
+    }
+
+    function appendMessage(content, type) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}-message`;
+        messageDiv.textContent = content;
+        chatMessages.appendChild(messageDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Utility Functions
+    function showSuccess(message) {
+        // Implement a toast or notification system
+        console.log('Success:', message);
+    }
+
+    function showError(message) {
+        // Implement a toast or notification system
+        console.error('Error:', message);
+    }
+
     // Functions
     
     function sendMessage() {
@@ -331,4 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial suggested question
     suggestedQuestion.textContent = suggestedQuestions[0];
+
+    // Initialize the application
+    init();
 });
