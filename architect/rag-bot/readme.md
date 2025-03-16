@@ -1,22 +1,23 @@
 # RAG Document Processing System
 
-This is a web-based RAG (Retrieval-Augmented Generation) system that allows you to upload documents and query them using natural language.
 
-## Setup
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd rag-bot
 ```
 
 2. Create a virtual environment and activate it:
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
