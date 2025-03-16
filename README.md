@@ -1,5 +1,9 @@
 # Klarity Work Trial
 
+Demo 1: https://youtu.be/ob8kO6NCtzM
+
+Shows asking odf questions and ask ai feature to change things
+
 This repository is used as a work trial sandbox where all experiments, proofs-of-concept, and production-oriented skeletons are developed and refined. Below is an overview of the repository structure, the current inner workings of each folder, and the status of our work trial.
 
 ### ask-ai-framework
