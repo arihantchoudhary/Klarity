@@ -2,12 +2,23 @@ import os
 import logging
 from pathlib import Path
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, render_template_string, send_from_directory
+from flask import Flask, request, jsonify, render_template_string, send_from_directory, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from .document_processor import DocumentProcessor
-from .vector_store import DenseVectorIndexer
-from .rag_chatbot import RAGChatbot
+from document_processor import DocumentProcessor
+from vector_store import DenseVectorIndexer
+from rag_chatbot import RAGChatbot
+import uuid
+from typing import List, Dict, Optional
+import fitz  # PyMuPDF
+from docx import Document  # python-docx for Word documents
+import pandas as pd  # For Excel files
+from PIL import Image  # For image processing
+import mimetypes  # For file type detection
+import chromadb
+from chromadb.utils import embedding_functions
+from sentence_transformers import SentenceTransformer
+from openai import OpenAI
 
 # Load environment variables
 env_path = Path(__file__).parent.parent / '.env'
@@ -275,6 +286,170 @@ def clear_chat_history():
     except Exception as e:
         logger.error(f"Error clearing chat history: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    """Handle file upload and processing."""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'File type not allowed'}), 400
+    
+    try:
+        # Generate unique ID and secure filename
+        file_id = str(uuid.uuid4())
+        filename = secure_filename(file.filename)
+        file_path = UPLOAD_FOLDER / filename
+        
+        # Save the file
+        file.save(str(file_path))
+        
+        # Get MIME type
+        mime_type = get_mime_type(str(file_path))
+        
+        # Process text content if applicable
+        text_content = None
+        if mime_type == 'application/pdf':
+            text_content = process_pdf(str(file_path))
+        elif mime_type in ['application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+            text_content = process_docx(str(file_path))
+        elif mime_type in ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
+            text_content = process_excel(str(file_path))
+        elif mime_type.startswith('text/'):
+            text_content = process_text(str(file_path))
+        
+        # Add to vector store if text content is available
+        if text_content:
+            metadata = {
+                'file_id': file_id,
+                'filename': filename,
+                'mime_type': mime_type,
+                'file_path': str(file_path)
+            }
+            add_to_vector_store(text_content, metadata)
+        
+        return jsonify({
+            'id': file_id,
+            'name': filename,
+            'path': f'/view/{file_id}',
+            'mime_type': mime_type
+        })
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/view/<file_id>', methods=['GET'])
+def view_file(file_id):
+    """Serve file for viewing."""
+    try:
+        # Find the file in the vector store
+        results = collection.get(
+            where={'file_id': file_id},
+            limit=1
+        )
+        
+        if not results['metadatas']:
+            return jsonify({'error': 'File not found'}), 404
+        
+        file_path = results['metadatas'][0]['file_path']
+        return send_file(file_path)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def allowed_file(filename: str) -> bool:
+    """Check if the file extension is allowed."""
+    ALLOWED_EXTENSIONS = {
+        'pdf', 'docx', 'doc', 'xlsx', 'xls',
+        'png', 'jpg', 'jpeg', 'gif',
+        'mp4', 'webm', 'txt'
+    }
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_mime_type(file_path: str) -> str:
+    """Get the MIME type of a file."""
+    mime_type, _ = mimetypes.guess_type(file_path)
+    return mime_type or 'application/octet-stream'
+
+def process_pdf(file_path: str) -> str:
+    """Extract text from PDF file."""
+    text = []
+    try:
+        with fitz.open(file_path) as pdf:
+            for page in pdf:
+                text.append(page.get_text())
+        return '\n'.join(text)
+    except Exception as e:
+        logger.error(f"Error processing PDF {file_path}: {str(e)}")
+        return ""
+
+def process_docx(file_path: str) -> str:
+    """Extract text from Word document."""
+    doc = Document(file_path)
+    return '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+
+def process_excel(file_path: str) -> str:
+    """Extract text from Excel file."""
+    df = pd.read_excel(file_path)
+    return df.to_string()
+
+def process_text(file_path: str) -> str:
+    """Read text file content."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return f.read()
+
+def chunk_text(text: str, chunk_size: int = 800, chunk_overlap: int = 80) -> List[str]:
+    """Split text into overlapping chunks."""
+    chunks = []
+    start = 0
+    text_len = len(text)
+    
+    while start < text_len:
+        end = start + chunk_size
+        
+        if end < text_len:
+            # Look for sentence endings within the last 100 chars of the chunk
+            look_back = min(100, chunk_size)
+            last_period = text.rfind('.', end - look_back, end)
+            last_exclaim = text.rfind('!', end - look_back, end)
+            last_question = text.rfind('?', end - look_back, end)
+            
+            # Find the latest sentence ending
+            sentence_end = max(last_period, last_exclaim, last_question)
+            
+            if sentence_end != -1 and sentence_end > start:
+                end = sentence_end + 1
+        
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        
+        start = end - chunk_overlap
+    
+    return chunks
+
+def add_to_vector_store(text: str, metadata: Dict) -> None:
+    """Add text chunks to the vector store."""
+    chunks = chunk_text(text)
+    
+    for i, chunk in enumerate(chunks):
+        chunk_id = f"{metadata['file_id']}_{i}"
+        chunk_metadata = {
+            **metadata,
+            'chunk_index': i,
+            'total_chunks': len(chunks)
+        }
+        
+        collection.add(
+            documents=[chunk],
+            metadatas=[chunk_metadata],
+            ids=[chunk_id]
+        )
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

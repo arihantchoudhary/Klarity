@@ -1,81 +1,124 @@
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 import os
 from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+import logging
+from pathlib import Path
+import chromadb
+from chromadb.utils import embedding_functions
+from sentence_transformers import SentenceTransformer
+
+logger = logging.getLogger(__name__)
 
 class DenseVectorIndexer:
     """Handles document indexing and retrieval using dense vector embeddings."""
     
-    def __init__(self, 
-                collection_name: str = "dense_vector_index",
-                embedding_model: str = "text-embedding-3-small",
-                persist_directory: str = "./vector_store"):
+    def __init__(self, persist_directory: str, collection_name: str = "documents"):
         """Initialize the vector store.
         
         Args:
-            collection_name: Name of the vector store collection
-            embedding_model: Name of the embedding model to use
             persist_directory: Directory to persist the vector store
+            collection_name: Name of the collection to store vectors
         """
-        self.collection_name = collection_name
-        self.persist_directory = persist_directory
-        self.embeddings = OpenAIEmbeddings(model=embedding_model)
+        self.persist_directory = Path(persist_directory)
+        self.persist_directory.mkdir(parents=True, exist_ok=True)
         
-        # Create or load the vector store
-        if os.path.exists(persist_directory):
-            self.vector_store = Chroma(
-                collection_name=collection_name,
-                embedding_function=self.embeddings,
-                persist_directory=persist_directory
-            )
-        else:
-            os.makedirs(persist_directory)
-            self.vector_store = Chroma(
-                collection_name=collection_name,
-                embedding_function=self.embeddings,
-                persist_directory=persist_directory
-            )
+        # Initialize ChromaDB client
+        self.client = chromadb.PersistentClient(path=str(self.persist_directory))
         
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
+        # Initialize sentence transformer for embeddings
+        self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="all-mpnet-base-v2"
         )
+        
+        # Get or create collection
+        self.collection = self.client.get_or_create_collection(
+            name=collection_name,
+            embedding_function=self.embedding_function,
+            metadata={"description": "Document chunks with embeddings"}
+        )
+        
+        logger.info(f"Initialized vector store at {persist_directory}")
     
-    def add_texts(self, texts: List[str], metadatas: List[Dict[str, Any]] = None) -> None:
+    def add_texts(self, texts: List[str], metadatas: Optional[List[Dict]] = None) -> List[str]:
         """Add texts to the vector store.
         
         Args:
-            texts: List of text strings to add
-            metadatas: Optional list of metadata dictionaries
+            texts: List of text chunks to add
+            metadatas: Optional list of metadata dictionaries for each chunk
+            
+        Returns:
+            List of IDs for the added chunks
         """
-        # Split texts into chunks
-        docs = []
-        for i, text in enumerate(texts):
-            chunks = self.text_splitter.split_text(text)
-            metadata = metadatas[i] if metadatas else {}
-            for j, chunk in enumerate(chunks):
-                chunk_metadata = metadata.copy()
-                chunk_metadata["chunk_id"] = j
-                docs.append(Document(page_content=chunk, metadata=chunk_metadata))
+        if not texts:
+            return []
         
-        # Add to vector store
-        self.vector_store.add_documents(docs)
-        self.vector_store.persist()
+        # Generate IDs for chunks
+        ids = [f"chunk_{i}" for i in range(len(texts))]
+        
+        try:
+            # Add chunks to collection
+            self.collection.add(
+                documents=texts,
+                metadatas=metadatas if metadatas else None,
+                ids=ids
+            )
+            logger.info(f"Added {len(texts)} chunks to vector store")
+            return ids
+        
+        except Exception as e:
+            logger.error(f"Error adding texts to vector store: {e}")
+            raise
     
-    def similarity_search(self, query: str, k: int = 5) -> List[Tuple[Document, float]]:
-        """Search for similar documents using the query.
+    def similarity_search(self, query: str, k: int = 5) -> List[Dict]:
+        """Search for similar texts in the vector store.
         
         Args:
-            query: Search query
+            query: Query text
             k: Number of results to return
             
         Returns:
-            List of (document, score) tuples
+            List of dictionaries containing text and metadata
         """
-        return self.vector_store.similarity_search_with_relevance_scores(query, k=k)
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=k
+            )
+            
+            # Format results
+            formatted_results = []
+            for i in range(len(results['documents'][0])):
+                result = {
+                    'text': results['documents'][0][i],
+                    'metadata': results['metadatas'][0][i] if results['metadatas'] else None,
+                    'distance': results['distances'][0][i] if 'distances' in results else None
+                }
+                formatted_results.append(result)
+            
+            return formatted_results
+        
+        except Exception as e:
+            logger.error(f"Error searching vector store: {e}")
+            raise
+    
+    def get_stats(self) -> Dict:
+        """Get statistics about the vector store.
+        
+        Returns:
+            Dictionary containing vector store statistics
+        """
+        try:
+            return {
+                'total_chunks': self.collection.count(),
+                'collection_name': self.collection.name,
+                'metadata': self.collection.metadata
+            }
+        except Exception as e:
+            logger.error(f"Error getting vector store stats: {e}")
+            raise
     
     def add_documents(self, documents: List[Document]) -> None:
         """Add Document objects directly to the vector store.

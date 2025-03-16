@@ -13,20 +13,32 @@ document.addEventListener('DOMContentLoaded', function() {
     const editorContent = document.querySelector('.editor-content');
     const toolbarButtons = document.querySelectorAll('.toolbar-btn');
     const fileUpload = document.getElementById('file-upload');
-    const pathUpload = document.getElementById('path-upload');
-    const documentList = document.getElementById('document-list');
-    const documentContent = document.getElementById('document-content');
-    const currentDocumentTitle = document.getElementById('current-document-title');
+    const folderUpload = document.getElementById('folder-upload');
+    const uploadProgress = document.getElementById('upload-progress');
+    const progressBar = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    const documentsContainer = document.getElementById('documents-container');
+    const documentSearch = document.getElementById('document-search');
+    const fileTypeFilter = document.getElementById('file-type-filter');
+    const viewerContent = document.getElementById('viewer-content');
+    const currentDocument = document.getElementById('current-document');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const pageInfo = document.getElementById('page-info');
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
     const saveDocument = document.getElementById('save-document');
     const chatInput = document.getElementById('chat-input');
     const sendMessage = document.getElementById('send-message');
-    const uploadProgress = document.getElementById('upload-progress');
     
     let currentEditingFile = null;
     let fileContents = new Map(); // Cache for file contents
-    let currentDocument = null;
+    let currentDocumentIndex = -1;
+    let currentPage = 1;
+    let totalPages = 1;
+    let zoomLevel = 1;
+    let processingFiles = false;
     let documents = [];
-    let isProcessing = false;
     let hasDocuments = false;
     
     // Sample suggested questions
@@ -38,6 +50,40 @@ document.addEventListener('DOMContentLoaded', function() {
         "Can you explain the document processing pipeline?"
     ];
     let currentSuggestionIndex = 0;
+
+    // File type icons and handlers
+    const fileTypes = {
+        pdf: {
+            icon: '📄',
+            extensions: ['.pdf'],
+            handler: handlePDFFile
+        },
+        word: {
+            icon: '📝',
+            extensions: ['.docx', '.doc'],
+            handler: handleWordFile
+        },
+        excel: {
+            icon: '📊',
+            extensions: ['.xlsx', '.xls'],
+            handler: handleExcelFile
+        },
+        image: {
+            icon: '🖼️',
+            extensions: ['.png', '.jpg', '.jpeg', '.gif'],
+            handler: handleImageFile
+        },
+        video: {
+            icon: '🎥',
+            extensions: ['.mp4', '.webm'],
+            handler: handleVideoFile
+        },
+        text: {
+            icon: '📝',
+            extensions: ['.txt'],
+            handler: handleTextFile
+        }
+    };
 
     // Initial state
     allSourcesCheckbox.checked = true;
@@ -241,194 +287,308 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Document Upload and Processing
-    async function handleFileUpload(event) {
-        if (isProcessing) return;
-        
-        const files = event.target.files;
+    async function handleFileSelect(event) {
+        const files = Array.from(event.target.files);
         if (files.length === 0) return;
+        
+        await processFiles(files);
+        event.target.value = ''; // Reset input
+    }
 
-        isProcessing = true;
-        uploadProgress.style.display = 'block';
+    async function handleFolderSelect(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+        
+        await processFiles(files);
+        event.target.value = ''; // Reset input
+    }
+
+    async function processFiles(files) {
+        if (processingFiles) return;
+        processingFiles = true;
+        
+        showUploadProgress();
+        const totalFiles = files.length;
+        let processedFiles = 0;
         
         try {
             for (const file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const response = await fetch('http://127.0.0.1:5001/api/process-document', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    documents.push(file.name);
-                    showSuccess(`Successfully processed ${file.name}`);
-                } else {
-                    showError(`Failed to process ${file.name}: ${result.error}`);
+                const extension = '.' + file.name.split('.').pop().toLowerCase();
+                const fileType = getFileType(extension);
+                
+                if (fileType) {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            const document = {
+                                id: result.id,
+                                name: file.name,
+                                type: fileType,
+                                path: result.path,
+                                size: formatFileSize(file.size),
+                                uploadDate: new Date().toLocaleString()
+                            };
+                            
+                            documents.push(document);
+                            updateDocumentsList();
+                        } else {
+                            console.error(`Failed to upload ${file.name}`);
+                        }
+                    } catch (error) {
+                        console.error(`Error uploading ${file.name}:`, error);
+                    }
                 }
+                
+                processedFiles++;
+                updateProgress(processedFiles / totalFiles * 100);
             }
-
-            hasDocuments = documents.length > 0;
-            updateDocumentList();
-        } catch (error) {
-            console.error('Error processing files:', error);
-            showError('Error processing files');
         } finally {
-            isProcessing = false;
-            uploadProgress.style.display = 'none';
-            fileUpload.value = '';
+            processingFiles = false;
+            hideUploadProgress();
         }
     }
 
-    async function handlePathUpload() {
-        // In a real implementation, this would open a directory picker
-        // For now, we'll just show an alert
-        alert('Directory selection is not implemented in this demo. Please use file upload instead.');
+    // UI Updates
+    function updateProgress(percent) {
+        progressBar.style.width = `${percent}%`;
+        progressText.textContent = `Processing files... ${Math.round(percent)}%`;
     }
 
-    // Document Editing
-    async function loadDocument(docName) {
+    function showUploadProgress() {
+        uploadProgress.classList.remove('hidden');
+        progressBar.style.width = '0%';
+    }
+
+    function hideUploadProgress() {
+        setTimeout(() => {
+            uploadProgress.classList.add('hidden');
+        }, 1000);
+    }
+
+    function updateDocumentsList() {
+        const filteredDocs = filterDocumentsList();
+        
+        if (filteredDocs.length === 0) {
+            documentsContainer.innerHTML = `
+                <div class="empty-state">
+                    <p>No documents found</p>
+                    <p class="supported-formats">Supported formats: PDF, DOCX, XLSX, PNG, JPG, MP4, MP3, TXT</p>
+                </div>
+            `;
+            return;
+        }
+        
+        documentsContainer.innerHTML = filteredDocs.map((doc, index) => `
+            <div class="document-item ${index === currentDocumentIndex ? 'active' : ''}" 
+                 onclick="selectDocument(${index})">
+                <span class="document-icon">${doc.type.icon}</span>
+                <div class="document-info">
+                    <div class="document-name">${doc.name}</div>
+                    <div class="document-meta">${doc.size} • ${doc.uploadDate}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Document Handling
+    function selectDocument(index) {
+        currentDocumentIndex = index;
+        const document = documents[index];
+        updateDocumentsList();
+        
+        currentDocument.textContent = document.name;
+        document.type.handler(document);
+    }
+
+    async function handlePDFFile(document) {
         try {
-            documentContent.innerHTML = '<div class="placeholder">Loading document...</div>';
-            
-            const response = await fetch(`http://127.0.0.1:5001/api/file-contents?path=${encodeURIComponent(docName)}`);
-            const data = await response.json();
-            
-            if (data.success && data.content) {
-                currentDocument = docName;
-                currentDocumentTitle.textContent = docName;
-                documentContent.innerHTML = '';
-                documentContent.contentEditable = 'true';
+            const response = await fetch(`/view/${document.id}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
                 
-                // Create an editable div for the content
-                const contentDiv = document.createElement('div');
-                contentDiv.innerHTML = data.content;
-                documentContent.appendChild(contentDiv);
+                viewerContent.innerHTML = `
+                    <iframe src="${url}" style="width: 100%; height: 100%; border: none;"></iframe>
+                `;
                 
-                saveDocument.disabled = true;
-                updateDocumentList();
-            } else {
-                throw new Error(data.error || 'Failed to load document');
+                // Enable navigation controls
+                updateNavigationControls(true);
             }
         } catch (error) {
-            console.error('Error loading document:', error);
-            showError('Failed to load document');
-            documentContent.innerHTML = '<div class="placeholder">Error loading document</div>';
+            console.error('Error loading PDF:', error);
+            showError('Failed to load PDF');
         }
     }
 
-    function handleDocumentEdit() {
-        if (currentDocument) {
-            saveDocument.disabled = false;
-        }
+    function handleWordFile(document) {
+        viewerContent.innerHTML = `
+            <div class="document-preview">
+                <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(document.path)}" 
+                        style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        `;
+        updateNavigationControls(false);
     }
 
-    async function handleSaveDocument() {
-        if (!currentDocument) return;
+    function handleExcelFile(document) {
+        viewerContent.innerHTML = `
+            <div class="document-preview">
+                <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(document.path)}" 
+                        style="width: 100%; height: 100%; border: none;"></iframe>
+            </div>
+        `;
+        updateNavigationControls(false);
+    }
 
+    function handleImageFile(document) {
+        viewerContent.innerHTML = `
+            <div class="image-preview" style="transform: scale(${zoomLevel})">
+                <img src="${document.path}" alt="${document.name}">
+            </div>
+        `;
+        updateNavigationControls(false);
+    }
+
+    function handleVideoFile(document) {
+        viewerContent.innerHTML = `
+            <div class="video-preview">
+                <video controls>
+                    <source src="${document.path}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        `;
+        updateNavigationControls(false);
+    }
+
+    function handleTextFile(document) {
+        fetch(document.path)
+            .then(response => response.text())
+            .then(content => {
+                viewerContent.innerHTML = `
+                    <div class="text-preview">
+                        <pre>${content}</pre>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                console.error('Error loading text file:', error);
+                showError('Failed to load text file');
+            });
+        updateNavigationControls(false);
+    }
+
+    // Utility Functions
+    function getFileType(extension) {
+        for (const [type, config] of Object.entries(fileTypes)) {
+            if (config.extensions.includes(extension.toLowerCase())) {
+                return config;
+            }
+        }
+        return null;
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+    }
+
+    function filterDocumentsList() {
+        const searchTerm = documentSearch.value.toLowerCase();
+        const selectedType = fileTypeFilter.value;
+        
+        return documents.filter(doc => {
+            const matchesSearch = doc.name.toLowerCase().includes(searchTerm);
+            const matchesType = selectedType === 'all' || 
+                               (selectedType === 'image' && doc.type.extensions.some(ext => ['.png', '.jpg', '.jpeg', '.gif'].includes(ext))) ||
+                               (selectedType === doc.type.extensions[0].substring(1));
+            return matchesSearch && matchesType;
+        });
+    }
+
+    function filterDocuments() {
+        updateDocumentsList();
+    }
+
+    // Chat Functions
+    function handleInputChange() {
+        sendButton.disabled = !userInput.value.trim();
+    }
+
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+        
+        // Add user message
+        appendMessage('user', message);
+        userInput.value = '';
+        sendButton.disabled = true;
+        
         try {
-            const response = await fetch('http://127.0.0.1:5001/api/save-file', {
+            const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    path: currentDocument,
-                    content: documentContent.innerHTML
+                    message,
+                    documentId: currentDocumentIndex >= 0 ? documents[currentDocumentIndex].id : null
                 })
             });
-
-            const result = await response.json();
-            if (result.success) {
-                saveDocument.disabled = true;
-                showSuccess('Document saved successfully');
+            
+            if (response.ok) {
+                const result = await response.json();
+                appendMessage('assistant', result.response);
             } else {
-                throw new Error(result.error || 'Failed to save document');
-            }
-        } catch (error) {
-            console.error('Error saving document:', error);
-            showError('Failed to save document');
-        }
-    }
-
-    // Chat Functionality
-    function handleChatInput(event) {
-        const message = event.target.value.trim();
-        sendMessage.disabled = !message || !hasDocuments;
-    }
-
-    function handleChatKeyPress(event) {
-        if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-            if (!sendMessage.disabled) {
-                handleSendMessage();
-            }
-        }
-    }
-
-    async function handleSendMessage() {
-        const message = chatInput.value.trim();
-        if (!message || !hasDocuments) return;
-
-        appendMessage(message, 'user');
-        chatInput.value = '';
-        sendMessage.disabled = true;
-
-        try {
-            const response = await fetch('http://127.0.0.1:5001/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message })
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                appendMessage(result.response, 'assistant');
-                if (result.sources) {
-                    appendSources(result.sources);
-                }
-            } else {
-                throw new Error(result.error || 'Failed to get response');
+                throw new Error('Failed to get response');
             }
         } catch (error) {
             console.error('Error sending message:', error);
-            appendMessage('Sorry, I encountered an error processing your request. Please try again.', 'system');
+            appendMessage('assistant', 'Sorry, I encountered an error processing your request.');
         }
     }
 
-    function appendMessage(content, type) {
+    function appendMessage(role, content) {
         const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${type}-message`;
+        messageDiv.className = `message ${role}-message`;
         messageDiv.textContent = content;
         chatMessages.appendChild(messageDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function appendSources(sources) {
-        if (sources.length > 0) {
-            const sourcesDiv = document.createElement('div');
-            sourcesDiv.className = 'message system-message';
-            sourcesDiv.innerHTML = `
-                <strong>Sources:</strong><br>
-                ${sources.map(source => `- ${source}`).join('<br>')}
-            `;
-            chatMessages.appendChild(sourcesDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+    // Navigation and Zoom Controls
+    function updateNavigationControls(enabled) {
+        prevPageBtn.disabled = !enabled;
+        nextPageBtn.disabled = !enabled;
+        pageInfo.textContent = enabled ? `Page ${currentPage} of ${totalPages}` : '';
+    }
+
+    function adjustZoom(delta) {
+        zoomLevel = Math.max(0.1, Math.min(3, zoomLevel + delta));
+        const preview = viewerContent.querySelector('.image-preview');
+        if (preview) {
+            preview.style.transform = `scale(${zoomLevel})`;
         }
     }
 
-    // Utility Functions
-    function showSuccess(message) {
-        // You can implement a toast notification system here
-        console.log('Success:', message);
-    }
-
+    // Error Handling
     function showError(message) {
-        // You can implement a toast notification system here
-        console.error('Error:', message);
+        viewerContent.innerHTML = `
+            <div class="error-message">
+                <p>⚠️ ${message}</p>
+            </div>
+        `;
     }
 
     // Functions

@@ -7,88 +7,172 @@ import base64
 from PIL import Image
 from tqdm import tqdm
 import streamlit as st
+import logging
+from pathlib import Path
+import fitz
+import pandas as pd
+from docx import Document
+
+logger = logging.getLogger(__name__)
 
 class DocumentProcessor:
     """Handles the processing of PDF documents, extracting text, tables, and images."""
     
-    def __init__(self, output_path: str = "./content/"):
+    def __init__(self, output_path: str):
         """Initialize the document processor.
         
         Args:
-            output_path: Directory to store temporary files and processed content
+            output_path: Directory to save extracted content
         """
-        self.output_path = output_path
-        os.makedirs(output_path, exist_ok=True)
+        self.output_path = Path(output_path)
+        self.output_path.mkdir(parents=True, exist_ok=True)
     
-    def process_pdf(self, file_path: str, extract_images: bool = True) -> Tuple[List[str], List[List[List[str]]], List[str]]:
-        """Process a PDF file and extract its contents.
+    def process_pdf(self, file_path: str) -> Tuple[List[str], List[pd.DataFrame], List[Image.Image]]:
+        """Process a PDF file and extract text, tables, and images.
         
         Args:
             file_path: Path to the PDF file
-            extract_images: Whether to extract images from the PDF
             
         Returns:
-            Tuple containing lists of (texts, tables, images)
+            Tuple of (texts, tables, images)
         """
-        print(f"Processing PDF: {file_path}")
-        
         texts = []
         tables = []
-        images_b64 = []
+        images = []
         
-        # Extract text and tables using pdfplumber
-        with pdfplumber.open(file_path) as pdf:
-            for page in tqdm(pdf.pages, desc="Processing pages"):
-                # Extract text
-                text = page.extract_text()
-                if text and text.strip():
-                    texts.append(text.strip())
-                
-                # Extract tables
-                page_tables = page.extract_tables()
-                if page_tables:
-                    tables.extend(page_tables)
-        
-        # Extract images using pdf2image if requested
-        if extract_images:
-            try:
-                # Convert PDF pages to images
-                pages = convert_from_path(file_path)
-                
-                for i, page in enumerate(pages):
-                    # Save image to bytes
-                    img_byte_arr = io.BytesIO()
-                    page.save(img_byte_arr, format='PNG')
-                    img_byte_arr = img_byte_arr.getvalue()
+        try:
+            with fitz.open(file_path) as pdf:
+                for page_num, page in enumerate(pdf):
+                    # Extract text
+                    text = page.get_text()
+                    if text.strip():
+                        texts.append(text)
                     
-                    # Convert to base64
-                    img_b64 = base64.b64encode(img_byte_arr).decode('utf-8')
-                    images_b64.append(img_b64)
-            except Exception as e:
-                print(f"Warning: Failed to extract images: {str(e)}")
+                    # Extract images
+                    for img_index, img in enumerate(page.get_images()):
+                        try:
+                            xref = img[0]
+                            base_image = pdf.extract_image(xref)
+                            image_bytes = base_image["image"]
+                            image = Image.open(io.BytesIO(image_bytes))
+                            images.append(image)
+                        except Exception as e:
+                            logger.warning(f"Failed to extract image {img_index} from page {page_num}: {e}")
+                    
+                    # Extract tables (basic implementation)
+                    # Note: This is a simplified approach. For better table extraction,
+                    # consider using specialized libraries like tabula-py
+                    tables_text = page.get_text("blocks")
+                    if tables_text:
+                        try:
+                            df = pd.DataFrame([t[4] for t in tables_text if len(t) > 4])
+                            if not df.empty:
+                                tables.append(df)
+                        except Exception as e:
+                            logger.warning(f"Failed to extract table from page {page_num}: {e}")
         
-        print(f"Extracted {len(texts)} text chunks, {len(tables)} tables, and {len(images_b64)} images")
-        return texts, tables, images_b64
+        except Exception as e:
+            logger.error(f"Error processing PDF {file_path}: {e}")
+            raise
+        
+        return texts, tables, images
     
-    def process_directory(self, directory_path: str) -> Dict[str, Tuple[List[str], List[List[List[str]]], List[str]]]:
-        """Process all PDF files in a directory.
+    def process_docx(self, file_path: str) -> Tuple[List[str], List[pd.DataFrame], List[Image.Image]]:
+        """Process a Word document and extract text, tables, and images.
         
         Args:
-            directory_path: Path to directory containing PDF files
+            file_path: Path to the Word document
             
         Returns:
-            Dictionary mapping filenames to their processed contents
+            Tuple of (texts, tables, images)
         """
-        results = {}
-        for filename in os.listdir(directory_path):
-            if filename.lower().endswith('.pdf'):
-                file_path = os.path.join(directory_path, filename)
-                try:
-                    results[filename] = self.process_pdf(file_path)
-                except Exception as e:
-                    print(f"Error processing {filename}: {str(e)}")
-                    continue
-        return results
+        texts = []
+        tables = []
+        images = []
+        
+        try:
+            doc = Document(file_path)
+            
+            # Extract text from paragraphs
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    texts.append(para.text)
+            
+            # Extract tables
+            for table in doc.tables:
+                data = []
+                for row in table.rows:
+                    row_data = [cell.text for cell in row.cells]
+                    data.append(row_data)
+                if data:
+                    tables.append(pd.DataFrame(data[1:], columns=data[0]))
+            
+            # Note: Image extraction from DOCX is more complex and might require
+            # additional processing of doc.inline_shapes or doc.part.related_parts
+        
+        except Exception as e:
+            logger.error(f"Error processing Word document {file_path}: {e}")
+            raise
+        
+        return texts, tables, images
+    
+    def process_text(self, file_path: str) -> List[str]:
+        """Process a text file.
+        
+        Args:
+            file_path: Path to the text file
+            
+        Returns:
+            List of text chunks
+        """
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text = f.read()
+            return [text] if text.strip() else []
+        
+        except Exception as e:
+            logger.error(f"Error processing text file {file_path}: {e}")
+            raise
+    
+    def save_extracted_content(self, file_id: str, texts: List[str], tables: List[pd.DataFrame], 
+                             images: List[Image.Image]) -> Dict[str, List[str]]:
+        """Save extracted content to files.
+        
+        Args:
+            file_id: Unique identifier for the document
+            texts: List of extracted text chunks
+            tables: List of extracted tables
+            images: List of extracted images
+            
+        Returns:
+            Dictionary with paths to saved content
+        """
+        saved_paths = {
+            'texts': [],
+            'tables': [],
+            'images': []
+        }
+        
+        # Save texts
+        for i, text in enumerate(texts):
+            text_path = self.output_path / f"{file_id}_text_{i}.txt"
+            with open(text_path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            saved_paths['texts'].append(str(text_path))
+        
+        # Save tables
+        for i, table in enumerate(tables):
+            table_path = self.output_path / f"{file_id}_table_{i}.csv"
+            table.to_csv(table_path, index=False)
+            saved_paths['tables'].append(str(table_path))
+        
+        # Save images
+        for i, image in enumerate(images):
+            image_path = self.output_path / f"{file_id}_image_{i}.png"
+            image.save(image_path, 'PNG')
+            saved_paths['images'].append(str(image_path))
+        
+        return saved_paths
 
 def main():
     """Streamlit frontend for PDF processing"""
@@ -99,7 +183,6 @@ def main():
     
     # File uploader
     uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
-    extract_images = st.checkbox("Extract images", value=True)
     
     if uploaded_file is not None:
         # Save uploaded file temporarily
@@ -108,7 +191,7 @@ def main():
         
         # Process the file
         with st.spinner('Processing PDF...'):
-            texts, tables, images = processor.process_pdf("temp.pdf", extract_images)
+            texts, tables, images = processor.process_pdf("temp.pdf")
         
         # Display results
         st.success("Processing complete!")
@@ -130,8 +213,8 @@ def main():
         # Show images
         if images:
             st.subheader("Extracted Images")
-            for i, img_b64 in enumerate(images):
-                st.image(img_b64, caption=f"Image {i+1}")
+            for i, image in enumerate(images):
+                st.image(image, caption=f"Image {i+1}")
         
         # Cleanup
         os.remove("temp.pdf")

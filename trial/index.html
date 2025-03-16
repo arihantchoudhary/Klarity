@@ -3,67 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Klarity Document Assistant</title>
+    <title>Document Analysis & Chat</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="brain-icon.svg">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Left Panel - Document List -->
+    <div class="container">
+        <!-- Left Panel -->
         <div class="left-panel">
             <div class="upload-section">
-                <h2>Documents</h2>
                 <div class="upload-buttons">
                     <label for="file-upload" class="upload-btn">
-                        <i class="fas fa-upload"></i> Upload PDF Files
-                        <input type="file" id="file-upload" accept=".pdf" multiple>
+                        Upload Files
+                        <input type="file" id="file-upload" multiple accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,.mp4,.mp3,.txt">
+                    </label>
+                    <label for="folder-upload" class="upload-btn">
+                        Upload Folder
+                        <input type="file" id="folder-upload" webkitdirectory directory multiple>
                     </label>
                 </div>
-                <div id="upload-progress" class="upload-progress" style="display: none;">
-                    <div class="progress-bar"></div>
-                    <div class="progress-text">Processing documents...</div>
-                </div>
-            </div>
-            <div id="document-list" class="document-list">
-                <!-- Documents will be populated here -->
-                <div class="empty-state">
-                    <i class="fas fa-file-upload"></i>
-                    <p>Upload PDF files to get started</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Middle Panel - Document Editor -->
-        <div class="middle-panel">
-            <div id="editor-header">
-                <h2 id="current-document-title">Document Editor</h2>
-                <div class="editor-actions">
-                    <button id="save-document" class="action-btn" disabled>
-                        <i class="fas fa-save"></i> Save
-                    </button>
-                </div>
-            </div>
-            <div id="document-content" class="document-content">
-                <!-- Document content will be displayed here -->
-                <div class="placeholder">Select a document to view and edit its content</div>
-            </div>
-        </div>
-
-        <!-- Right Panel - RAG Chatbot -->
-        <div class="right-panel">
-            <div class="chat-container">
-                <h2>Document Assistant</h2>
-                <div id="chat-messages" class="chat-messages">
-                    <!-- Chat messages will appear here -->
-                    <div class="system-message">
-                        Hello! I'm your document assistant. I can help you understand and analyze your documents. Feel free to ask any questions about the uploaded documents.
+                <div id="upload-progress" class="upload-progress hidden">
+                    <div class="progress-text">Uploading files...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
                     </div>
                 </div>
-                <div class="chat-input-container">
-                    <textarea id="chat-input" placeholder="Ask a question about your documents..." rows="3"></textarea>
-                    <button id="send-message" disabled>
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
+            </div>
+            <div class="documents-list">
+                <div class="documents-header">
+                    <h3>Documents</h3>
+                    <div class="filter-section">
+                        <input type="text" id="document-search" placeholder="Search documents...">
+                        <select id="file-type-filter">
+                            <option value="all">All Types</option>
+                            <option value="pdf">PDF</option>
+                            <option value="docx">Word</option>
+                            <option value="xlsx">Excel</option>
+                            <option value="image">Images</option>
+                            <option value="video">Videos</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="documents-container">
+                    <div class="empty-state">
+                        <p>Upload files or a folder to get started</p>
+                        <p class="supported-formats">Supported formats: PDF, DOCX, XLSX, PNG, JPG, MP4, MP3, TXT</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle Panel -->
+        <div class="middle-panel">
+            <div id="document-viewer">
+                <div class="viewer-header">
+                    <h3 id="current-document">No document selected</h3>
+                    <div class="viewer-controls">
+                        <button id="prev-page" disabled>Previous</button>
+                        <span id="page-info">Page 0 of 0</span>
+                        <button id="next-page" disabled>Next</button>
+                        <button id="zoom-in">Zoom In</button>
+                        <button id="zoom-out">Zoom Out</button>
+                    </div>
+                </div>
+                <div id="viewer-content">
+                    <div class="empty-state">
+                        <p>Select a document from the left panel to view its contents</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>Chat with Documents</h3>
+                </div>
+                <div id="chat-messages">
+                    <div class="system-message">
+                        Hello! I can help you analyze your documents. Upload some files and ask me questions about them.
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <textarea id="user-input" placeholder="Ask a question about your documents..." rows="3"></textarea>
+                    <button id="send-button" disabled>Send</button>
                 </div>
             </div>
         </div>

@@ -1,0 +1,11 @@
+flask
+python-dotenv
+langchain
+langchain-openai
+faiss-cpu
+unstructured
+pdf2image
+python-docx
+pillow
+pandas
+numpy
