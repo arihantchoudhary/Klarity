@@ -32,7 +32,7 @@ The rest of the repo is pure chaos
 4. Data Indexing
    Dense Vector Index (stores more features enables better search while doing ANN in retrieval)
 
-![The vision is to make this like Cursor for .docx, .xlx, .png, .pdf and works across a million docs](make_architect_like_cursor_for%20docs.png)
+![The vision is to make this like Cursor for .docx, .xlx, .png, .pdf and works across a million docs](make_architect_like_cursor_for_docs.png)
 
 This is the UI
 
