@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutGrid, FileText, Edit3 } from 'lucide-react';
+import { LayoutGrid, FileText, Edit3, ClipboardList } from 'lucide-react';
 import { Button } from './ui/button';
 
 const Navigation = () => {
@@ -45,6 +45,16 @@ const Navigation = () => {
             >
               <Edit3 size={16} />
               <span>Cursor</span>
+            </Button>
+          </Link>
+          
+          <Link to="/assignment">
+            <Button 
+              variant={location.pathname === '/assignment' ? "default" : "ghost"}
+              className="flex items-center space-x-1"
+            >
+              <ClipboardList size={16} />
+              <span>Assignment</span>
             </Button>
           </Link>
         </div>
