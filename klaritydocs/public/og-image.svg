@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#3b82f6" />
+  <rect x="50" y="50" width="1100" height="530" rx="20" fill="#2563eb" />
+  
+  <!-- Logo "K" -->
+  <path d="M150 150V480H200V330L350 480H420L250 315L420 150H350L200 300V150H150Z" fill="white" />
+  
+  <!-- Text -->
+  <text x="450" y="250" font-family="Arial, sans-serif" font-weight="bold" font-size="72" fill="white">Klarity Architect</text>
+  <text x="450" y="350" font-family="Arial, sans-serif" font-weight="bold" font-size="72" fill="white">AskAI Projects</text>
+  
+  <!-- Tagline -->
+  <text x="450" y="420" font-family="Arial, sans-serif" font-size="32" fill="white">Revolutionizing document intelligence with AI</text>
+</svg>
